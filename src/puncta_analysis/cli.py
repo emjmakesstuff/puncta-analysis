@@ -92,6 +92,20 @@ def cmd_tune(args):
     save_path = args.config or "config.yaml"
     interactive_tune(image, manual_centroids=manual_centroids,
                      config=start_config, save_path=save_path)
+    
+def cmd_validate(args):
+    from .pipeline import run_validation
+
+    config_dict = _load_config(args.config)
+    if args.input_dir:
+        config_dict["input_dir"] = args.input_dir
+    if args.output_dir:
+        config_dict["output_dir"] = args.output_dir
+
+    _setup_logging()
+    output_dir = run_validation(config_dict, do_spatial=args.spatial)
+    print(f"\n✓ Validation done. Results in: {output_dir}")
+
 
 
 # ---------------------------------------------------------------------------
@@ -111,7 +125,6 @@ def main(argv=None):
     p_an.add_argument("--input-dir", help="Override input_dir from config.")
     p_an.add_argument("--output-dir", help="Override output_dir from config.")
     p_an.add_argument("--workers", type=int, help="Override number of workers.")
-    p_an.set_defaults(func=cmd_analyze)
     p_an.add_argument("--tune-each", action="store_true",
                       help="Interactively tune parameters for each image "
                            "before processing it.")
@@ -125,6 +138,17 @@ def main(argv=None):
                       help="Config to start from / save to (default: config.yaml)")
     p_tn.set_defaults(func=cmd_tune)
 
+    # validate
+    p_val = sub.add_parser("validate",
+                           help="Compare auto + tuned detection vs. manual counts.")
+    p_val.add_argument("--config", default="config.yaml")
+    p_val.add_argument("--input-dir", help="Override input_dir from config.")
+    p_val.add_argument("--output-dir", help="Override output_dir from config.")
+    p_val.add_argument("--spatial", action="store_true",
+                       help="Also compute spatial precision/recall/F1.")
+    p_val.set_defaults(func=cmd_validate)
+
+    # Parse and dispatch — MUST come after ALL subparsers are registered
     args = parser.parse_args(argv)
     args.func(args)
 
