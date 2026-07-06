@@ -9,15 +9,32 @@ from .detection import (
     filter_puncta,
     compare_puncta_sets,
 )
+from .preprocess import (
+    fit_gaussian_mixture,
+    select_channel,
+    select_channel_interactive,
+    enhance_contrast,
+    normalize_image,
+    preprocess_image,
+)
 
 __version__ = "0.1.0"
 
 __all__ = [
+    # config
     "PunctaConfig",
+    # detection
     "analyze_puncta",
     "detect_puncta_dog",
     "assign_puncta_to_rois",
     "measure_puncta_areas",
     "filter_puncta",
     "compare_puncta_sets",
+    # preprocess
+    "fit_gaussian_mixture",
+    "select_channel",
+    "select_channel_interactive",
+    "enhance_contrast",
+    "normalize_image",
+    "preprocess_image",
 ]
