@@ -25,6 +25,13 @@ from .io_utils import (
     load_manual_results_csv,
     load_analysis_data,
 )
+from .estimation import (
+    estimate_puncta_scale,
+    estimate_dog_sensitivity,
+    estimate_min_area,
+    estimate_parameters,
+)
+from .tuning import interactive_tune
 
 __version__ = "0.1.0"
 
@@ -52,4 +59,11 @@ __all__ = [
     "load_manual_centroids",
     "load_manual_results_csv",
     "load_analysis_data",
+    # estimation
+    "estimate_puncta_scale",
+    "estimate_dog_sensitivity",
+    "estimate_min_area",
+    "estimate_parameters",
+    # tuning
+    "interactive_tune",
 ]

@@ -64,6 +64,25 @@ class PunctaResults:
     # filled in later by postprocessing / pipeline
     pixel_size: dict | None = None
 
+# ---------------------------------------------------------------------------
+# removeSmall
+# ---------------------------------------------------------------------------
+def _remove_small(mask: np.ndarray, min_area: int) -> np.ndarray:
+    """Remove connected components smaller than `min_area` pixels (8-connectivity).
+
+    Version-proof replacement for bwareaopen / remove_small_objects that avoids
+    the scikit-image 0.26 min_size semantics change. Keeps objects with
+    area >= min_area.
+    """
+    if min_area <= 1:
+        return mask
+    labeled = label(mask, connectivity=2)
+    out = np.zeros_like(mask, dtype=bool)
+    for region in regionprops(labeled):
+        if region.area >= min_area:
+            out[labeled == region.label] = True
+    return out
+
 
 # ---------------------------------------------------------------------------
 # detectPunctaDoG
@@ -95,9 +114,10 @@ def detect_puncta_dog(image2d: np.ndarray, config: PunctaConfig) -> DetectionRes
     # bwareaopen(mask, N) removes objects with FEWER than N pixels.
     # min_puncta_area <= 1 means "remove nothing", so only filter when > 1.
     if config.min_puncta_area > 1:
-        binary_mask = remove_small_objects(
-            binary_mask, min_size=config.min_puncta_area, connectivity=2
-        )
+        # scikit-image >=0.26: min_size removes objects <= min_size,
+        # whereas MATLAB bwareaopen removes objects < min_size. Subtract 1
+        # to preserve the original "keep objects with >= min_puncta_area" behavior.
+        binary_mask = _remove_small(binary_mask, config.min_puncta_area)
 
     labeled = label(binary_mask, connectivity=2)   # 8-connectivity
     props = regionprops(labeled, intensity_image=image2d)
@@ -195,9 +215,7 @@ def measure_puncta_areas(image2d: np.ndarray, roi_mask: np.ndarray | None,
     logger.info("Thresholding at intensity: %.2f", threshold)
     binary_mask = image2d > threshold
     if config.min_puncta_area > 1:
-        binary_mask = remove_small_objects(
-            binary_mask, min_size=config.min_puncta_area, connectivity=2
-        )
+        binary_mask = _remove_small(binary_mask, config.min_puncta_area)
 
     counts = np.zeros(num_rois)
     total_area = np.zeros(num_rois)

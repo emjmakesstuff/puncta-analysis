@@ -34,3 +34,8 @@ sample_test.py
 sample_test_output.png
 visual_test.py
 visual_test_output.png
+tune_test.py
+estimation_test.py
+estimation_test_output.png
+scale_diag.py
+debug_thresh.py
