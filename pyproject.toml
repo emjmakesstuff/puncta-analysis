@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "puncta-analysis"
+version = "0.1.0"
+description = "Automated cell and puncta counting from microscopy images"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "EmJ Rennich" }]
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "scikit-image>=0.21",
+    "scikit-learn>=1.3",
+    "tifffile>=2023.1.1",
+    "roifile>=2023.1.1",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+    "pyyaml>=6.0",
+    "tqdm>=4.65",
+    "joblib>=1.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-cov", "ruff", "black"]
+
+[project.scripts]
+puncta = "puncta_analysis.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.black]
+line-length = 100
