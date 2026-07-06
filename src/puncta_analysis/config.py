@@ -32,6 +32,10 @@ class PunctaConfig:
     roi_boundary_color: str = "c"
     roi_boundary_width: float = 1.5
 
+    # Physical calibration (optional). If None, areas are reported in pixels.
+    # Set to your microscope's µm/pixel to get areas in µm².
+    pixel_size_um: float | None = None
+
     # ---- (de)serialization -------------------------------------------------
     @classmethod
     def from_dict(cls, d: dict) -> "PunctaConfig":

@@ -32,6 +32,17 @@ from .estimation import (
     estimate_parameters,
 )
 from .tuning import interactive_tune
+from .postprocess import (
+    convert_area_to_physical,
+    write_puncta_table,
+    build_result_row,
+    write_summary_table,
+)
+from .visualization import (
+    save_overlay_png,
+    save_detail_figure,
+)
+from .pipeline import discover_images, process_one_image, run_batch
 
 __version__ = "0.1.0"
 
@@ -66,4 +77,16 @@ __all__ = [
     "estimate_parameters",
     # tuning
     "interactive_tune",
+    # postprocess
+    "convert_area_to_physical",
+    "write_puncta_table",
+    "build_result_row",
+    "write_summary_table",
+    # visualization
+    "save_overlay_png",
+    "save_detail_figure",
+    # pipeline
+    "discover_images",
+    "process_one_image",
+    "run_batch",
 ]

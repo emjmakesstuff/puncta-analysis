@@ -30,117 +30,183 @@ def interactive_tune(
     sensitivity_range: tuple[float, float] = (0.0, 5.0),
     sigma_range: tuple[float, float] = (0.5, 6.0),
 ) -> PunctaConfig:
-    """Launch an interactive slider UI to tune detection parameters.
+    """Launch an interactive slider UI to tune detection parameters."""
+    from matplotlib.patches import FancyBboxPatch
 
-    Parameters
-    ----------
-    image : 2D image to tune on.
-    manual_centroids : optional (N, 2) ground-truth points [x, y]. If provided,
-        shown as green markers so you can gauge agreement (validation images).
-    config : starting config. If None, parameters are auto-estimated.
-    save_path : where the "Save" button writes the tuned config (YAML).
-    sensitivity_range, sigma_range : slider min/max.
-
-    Returns
-    -------
-    The final PunctaConfig (also returned after the window closes).
-    """
-    # --- Starting point: auto-estimate if no config given ---
     if config is None:
         config, _ = estimate_parameters(image)
         logger.info("Starting from auto-estimated parameters")
 
-    # Mutable holder so nested callbacks can update the "current" config
+    init_sens = config.dog_sensitivity
+    init_sigma = config.puncta_sigma1
+
     state = {"config": config}
+    vmax = np.percentile(image, 99)
 
-    vmax = np.percentile(image, 99)   # display contrast clip
+    # --- Palette ---
+    NAVY = "#1a3a6b"
+    BLUE = "#2f6fed"
+    BG = "#f4f7fc"
+    TEXT = "#2b3a55"
+    GREEN = "#22c55e"
+    RED = "#ef4444"
+    BTN = BLUE
+    BTN_HOVER = NAVY
 
-    # --- Figure layout: big image on top, sliders + button below ---
-    fig = plt.figure(figsize=(10, 11))
-    ax_img = fig.add_axes([0.08, 0.28, 0.84, 0.66])   # [left, bottom, w, h]
+    # Narrower figure -> less whitespace beside the image
+    fig = plt.figure(figsize=(6.2, 8.2))
+    fig.patch.set_facecolor(BG)
+
+    # Image panel spans nearly full width now
+    ax_img = fig.add_axes([0.04, 0.36, 0.92, 0.58])
     ax_img.imshow(image, cmap="gray", vmax=vmax)
     ax_img.axis("off")
+    # store original limits for zoom reset
+    x0, x1 = ax_img.get_xlim()
+    y0, y1 = ax_img.get_ylim()
+    home_limits = {"x": (x0, x1), "y": (y0, y1)}
 
-    # Optional manual ground-truth markers
     if manual_centroids is not None and len(manual_centroids) > 0:
         ax_img.scatter(manual_centroids[:, 0], manual_centroids[:, 1],
-                       marker="x", s=30, c="lime", linewidths=0.8,
+                       marker="x", s=28, c=GREEN, linewidths=0.9,
                        label=f"manual ({len(manual_centroids)})")
 
-    # Detected-puncta scatter (updated live). Start empty; filled by update().
-    auto_scatter = ax_img.scatter([], [], facecolors="none", edgecolors="red",
-                                  s=50, linewidths=0.8)
+    # (4) give the detected scatter a label so it shows in the legend
+    auto_scatter = ax_img.scatter([], [], facecolors="none", edgecolors=RED,
+                                  s=45, linewidths=0.9, label="detected")
+    title = ax_img.set_title("", fontsize=11, color=NAVY, fontweight="bold", pad=8)
 
-    title = ax_img.set_title("")   # updated with live count
+    # --- Slider 1: sensitivity ---
+    fig.text(0.04, 0.315, "Detection sensitivity", fontsize=10,
+             color=NAVY, fontweight="bold")
+    fig.text(0.04, 0.294,
+             "How bright a spot must be to count. Higher → fewer, stronger puncta.",
+             fontsize=7.5, color=TEXT, style="italic")
+    ax_sens = fig.add_axes([0.04, 0.262, 0.84, 0.022])
+    s_sens = Slider(ax_sens, "", *sensitivity_range, valinit=init_sens,
+                    valstep=0.05, color=BLUE)
+    ax_sens.set_facecolor("#d9e2ec")
 
-    # --- Sliders ---
-    ax_sens = fig.add_axes([0.15, 0.16, 0.70, 0.03])
-    ax_sig = fig.add_axes([0.15, 0.10, 0.70, 0.03])
+    # --- Slider 2: sigma ---
+    fig.text(0.04, 0.220, "Puncta size (σ)", fontsize=10,
+             color=NAVY, fontweight="bold")
+    fig.text(0.04, 0.199,
+             "Expected puncta radius in pixels. Match to your real puncta size.",
+             fontsize=7.5, color=TEXT, style="italic")
+    ax_sig = fig.add_axes([0.04, 0.167, 0.84, 0.022])
+    s_sig = Slider(ax_sig, "", *sigma_range, valinit=init_sigma,
+                   valstep=0.05, color=BLUE)
+    ax_sig.set_facecolor("#d9e2ec")
 
-    s_sens = Slider(ax_sens, "dog_sensitivity", *sensitivity_range,
-                    valinit=config.dog_sensitivity, valstep=0.05)
-    s_sig = Slider(ax_sig, "puncta_sigma1", *sigma_range,
-                   valinit=config.puncta_sigma1, valstep=0.05)
+    # --- Buttons: subtle small radius (not pill) ---
+    def make_button(rect, label):
+        ax = fig.add_axes(rect)
+        ax.set_facecolor(BG)
+        ax.axis("off")
+        patch = FancyBboxPatch(
+            (0.0, 0.0), 1.0, 1.0,
+            boxstyle="round,pad=0,rounding_size=0.06",   # small radius
+            transform=ax.transAxes, facecolor=BTN, edgecolor="none",
+            mutation_aspect=2.5,        # keeps radius subtle on wide boxes
+            clip_on=False,
+        )
+        ax.add_patch(patch)
+        ax.text(0.5, 0.5, label, ha="center", va="center",
+                transform=ax.transAxes, fontsize=10, fontweight="bold",
+                color="white")
+        return ax, patch
 
-    # --- Save button ---
-    ax_btn = fig.add_axes([0.40, 0.03, 0.20, 0.04])
-    b_save = Button(ax_btn, "Save to config")
+    ax_reset, p_reset = make_button([0.04, 0.06, 0.26, 0.05], "Reset")
+    ax_save, p_save = make_button([0.36, 0.06, 0.26, 0.05], "Save")
+    ax_done, p_done = make_button([0.68, 0.06, 0.26, 0.05], "Done")
 
-    # --- Core update function: recompute detection + redraw ---
+    status = fig.text(0.5, 0.02,
+                      "Scroll to zoom, drag to pan.  Adjust sliders, then Done.",
+                      ha="center", fontsize=8, color="#64748b")
+
+    # --- Core update ---
     def update(_event=None):
         cfg = replace(
             state["config"],
             dog_sensitivity=float(s_sens.val),
             puncta_sigma1=float(s_sig.val),
-            puncta_sigma2=float(s_sig.val) * 2.0,   # sigma2 follows sigma1
+            puncta_sigma2=float(s_sig.val) * 2.0,
         )
         state["config"] = cfg
-
         det = detect_puncta_dog(image, cfg)
-        if det.num_puncta > 0:
-            auto_scatter.set_offsets(det.centroids)
-        else:
-            auto_scatter.set_offsets(np.empty((0, 2)))
-
-        # Title with live count (+ comparison if manual available)
+        auto_scatter.set_offsets(det.centroids if det.num_puncta > 0
+                                 else np.empty((0, 2)))
+        # update legend label with live count
+        auto_scatter.set_label(f"detected ({det.num_puncta})")
+        _refresh_legend()
         if manual_centroids is not None and len(manual_centroids) > 0:
             n_man = len(manual_centroids)
             err = (det.num_puncta - n_man) / n_man * 100
-            title.set_text(
-                f"Detected: {det.num_puncta}   Manual: {n_man}   "
-                f"({err:+.1f}%)   |   sens={cfg.dog_sensitivity:.2f}, "
-                f"sigma1={cfg.puncta_sigma1:.2f}"
-            )
+            title.set_text(f"Detected: {det.num_puncta}    Manual: {n_man}    "
+                           f"({err:+.1f}%)")
         else:
-            title.set_text(
-                f"Detected: {det.num_puncta}   |   "
-                f"sens={cfg.dog_sensitivity:.2f}, "
-                f"sigma1={cfg.puncta_sigma1:.2f}"
-            )
+            title.set_text(f"Detected: {det.num_puncta} puncta")
         fig.canvas.draw_idle()
 
-    # --- Save callback ---
-    def save(_event):
-        cfg = state["config"]
-        _save_config_yaml(cfg, save_path)
-        print(f"\n✓ Saved tuned parameters to {save_path}")
-        print(f"  dog_sensitivity = {cfg.dog_sensitivity:.3f}")
-        print(f"  puncta_sigma1   = {cfg.puncta_sigma1:.3f}")
-        print(f"  puncta_sigma2   = {cfg.puncta_sigma2:.3f}")
-        # brief visual confirmation on the button
-        b_save.label.set_text("Saved ✓")
+    def _refresh_legend():
+        leg = ax_img.legend(loc="upper right", fontsize=8, framealpha=0.9)
+        leg.get_frame().set_facecolor("white")
+
+    # --- Button clicks ---
+    def on_click(event):
+        if event.inaxes is ax_reset:
+            s_sens.reset(); s_sig.reset()
+            status.set_text("Reset to auto-estimated values.")
+            fig.canvas.draw_idle()
+        elif event.inaxes is ax_save:
+            _save_config_yaml(state["config"], save_path)
+            status.set_text(f"Saved to {save_path}")
+            print(f"✓ Saved to {save_path}")
+            fig.canvas.draw_idle()
+        elif event.inaxes is ax_done:
+            _save_config_yaml(state["config"], save_path)
+            print(f"✓ Saved to {save_path} and closing.")
+            plt.close(fig)
+
+    # --- Hover on buttons ---
+    def on_move(event):
+        for ax, patch in [(ax_reset, p_reset), (ax_save, p_save), (ax_done, p_done)]:
+            patch.set_facecolor(BTN_HOVER if event.inaxes is ax else BTN)
         fig.canvas.draw_idle()
+
+    # --- (3) Scroll-to-zoom on the image ---
+    def on_scroll(event):
+        if event.inaxes is not ax_img:
+            return
+        scale = 0.8 if event.button == "up" else 1.25   # zoom in / out
+        cur_x = ax_img.get_xlim()
+        cur_y = ax_img.get_ylim()
+        xdata, ydata = event.xdata, event.ydata
+        new_w = (cur_x[1] - cur_x[0]) * scale
+        new_h = (cur_y[1] - cur_y[0]) * scale
+        # keep cursor position stable while zooming
+        relx = (cur_x[1] - xdata) / (cur_x[1] - cur_x[0])
+        rely = (cur_y[1] - ydata) / (cur_y[1] - cur_y[0])
+        ax_img.set_xlim([xdata - new_w * (1 - relx), xdata + new_w * relx])
+        ax_img.set_ylim([ydata - new_h * (1 - rely), ydata + new_h * rely])
+        fig.canvas.draw_idle()
+
+    # --- Double-click to reset zoom ---
+    def on_double(event):
+        if event.inaxes is ax_img and event.dblclick:
+            ax_img.set_xlim(home_limits["x"])
+            ax_img.set_ylim(home_limits["y"])
+            fig.canvas.draw_idle()
 
     s_sens.on_changed(update)
     s_sig.on_changed(update)
-    b_save.on_clicked(save)
+    fig.canvas.mpl_connect("button_press_event", on_click)
+    fig.canvas.mpl_connect("button_press_event", on_double)
+    fig.canvas.mpl_connect("motion_notify_event", on_move)
+    fig.canvas.mpl_connect("scroll_event", on_scroll)
 
-    if manual_centroids is not None and len(manual_centroids) > 0:
-        ax_img.legend(loc="upper right", fontsize=8)
-
-    update()          # initial render
-    plt.show()        # blocks until window closed
-
+    update()
+    plt.show()
     return state["config"]
 
 

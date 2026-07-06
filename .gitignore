@@ -39,3 +39,9 @@ estimation_test.py
 estimation_test_output.png
 scale_diag.py
 debug_thresh.py
+tif_tags.py
+test_summary.csv
+test_detail.png
+test_puncta_table.csv
+output_test.py
+test_overlay.png

@@ -238,6 +238,38 @@ def measure_puncta_areas(image2d: np.ndarray, roi_mask: np.ndarray | None,
         total_area_per_roi=total_area,
     )
 
+# ---------------------------------------------------------------------------
+# Per-blob stats (mirrors Fiji Analyze Particles: Area, Mean, Min, Max)
+# ---------------------------------------------------------------------------
+def measure_puncta_blobs(image2d: np.ndarray, threshold: float,
+                         config: PunctaConfig) -> "pd.DataFrame":
+    """Measure per-blob Area/Mean/Min/Max above an intensity threshold.
+
+    Mirrors the manual protocol (threshold image -> Analyze Particles), so the
+    output columns match the manual results CSV for direct comparison.
+
+    Returns a DataFrame with columns: Area, Mean, Min, Max (one row per blob).
+    """
+    import pandas as pd
+
+    binary_mask = image2d > threshold
+    binary_mask = _remove_small(binary_mask, config.min_puncta_area)
+
+    labeled = label(binary_mask, connectivity=2)   # 8-connectivity
+    props = regionprops(labeled, intensity_image=image2d)
+
+    rows = []
+    for p in props:
+        rows.append({
+            "Area": int(p.area),
+            "Mean": float(p.intensity_mean),
+            "Min": float(p.intensity_min),
+            "Max": float(p.intensity_max),
+        })
+    df = pd.DataFrame(rows, columns=["Area", "Mean", "Min", "Max"])
+    logger.info("Measured %d thresholded blobs (Area/Mean/Min/Max)", len(df))
+    return df
+
 
 # ---------------------------------------------------------------------------
 # filterPuncta (optional utility)
