@@ -17,6 +17,14 @@ from .preprocess import (
     normalize_image,
     preprocess_image,
 )
+from .io_utils import (
+    load_image_stack,
+    read_pixel_size,
+    load_fiji_roi,
+    load_manual_centroids,
+    load_manual_results_csv,
+    load_analysis_data,
+)
 
 __version__ = "0.1.0"
 
@@ -37,4 +45,11 @@ __all__ = [
     "enhance_contrast",
     "normalize_image",
     "preprocess_image",
+    # io
+    "load_image_stack",
+    "read_pixel_size",
+    "load_fiji_roi",
+    "load_manual_centroids",
+    "load_manual_results_csv",
+    "load_analysis_data",
 ]
