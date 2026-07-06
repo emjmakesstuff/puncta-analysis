@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Jupyter / testing
+.ipynb_checkpoints/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Project-specific: don't commit data or results
+*.tif
+*.tiff
+*.czi
+*.nd2
+*.mat
+results/
+multi_image_results_*/
+
+# User's own config (keep the example, ignore the real one)
+config.yaml
