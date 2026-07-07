@@ -46,3 +46,4 @@ test_puncta_table.csv
 output_test.py
 test_overlay.png
 roi_area_check.py
+plot_validation.py
