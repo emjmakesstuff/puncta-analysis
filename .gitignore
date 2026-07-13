@@ -29,7 +29,7 @@ results/
 multi_image_results_*/
 
 # User's own config (keep the example, ignore the real one)
-config.yaml
+config.example.yaml
 sample_test.py
 sample_test_output.png
 visual_test.py

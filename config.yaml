@@ -1,0 +1,38 @@
+# ============================================================
+# Puncta Analysis configuration
+# Copy this to config.yaml and edit for your data.
+# ============================================================
+
+# --- Input / output ---
+input_dir: data/sample
+output_dir: results
+recursive: true
+glob: "*.tif"
+channel: 1                    # 0-based channel to analyze for multi-channel images
+                              # (channel "2" in Fiji's 1-based terms = index 1)
+                              # ignored for single-channel images
+
+# --- Detection parameters (set these with `puncta tune`, or edit here) ---
+detection:
+  puncta_sigma1: 1.65
+  puncta_sigma2: 3.30
+  dog_sensitivity: 2.05
+  min_puncta_area: 1
+
+# --- GMM intensity threshold (for area measurement) ---
+gmm:
+  num_gmm_components: 2
+  gmm_replicates: 20
+
+# --- Physical calibration (optional) ---
+# null  -> areas reported in pixels (matches uncalibrated data)
+# number -> µm per pixel; areas reported in µm²
+pixel_size_um: null
+
+# --- Output options ---
+save_overlay_png: true        # per-image overlay PNG (recommended)
+save_detail_figure: false     # detailed 4-panel figure per image (slower)
+save_puncta_table: true       # per-punctum Area/Mean/Min/Max CSV
+
+# --- Performance ---
+workers: 1                    # parallel workers (bump up for many images)
