@@ -589,16 +589,18 @@ def page_home():
     st.markdown("### How it works")
     step_cards()          # <-- the cards render here
 
-    st.markdown("""
-    ### What makes it reliable
+    st.markdown("")
 
-    - **Adapts to each image:** detection parameters are estimated from the
-      image itself, so it generalizes to new data.
-    - **Compare to hand counts:** overlay your manual annotations to verify
-      the automatic counts match what a human would find.
-    - **Export everything:** counts, per-punctum measurements, and annotated
-      overlay images are saved for your records.
-    """)
+    # st.markdown("""
+    # ### What makes it reliable
+
+    # - **Adapts to each image:** detection parameters are estimated from the
+    #   image itself, so it generalizes to new data.
+    # - **Compare to hand counts:** overlay your manual annotations to verify
+    #   the automatic counts match what a human would find.
+    # - **Export everything:** counts, per-punctum measurements, and annotated
+    #   overlay images are saved for your records.
+    # """)
 
     if st.button("Get started — Select images", type="primary"):
         go_to("Image Selection")
