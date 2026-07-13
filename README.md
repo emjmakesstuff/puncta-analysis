@@ -1,4 +1,4 @@
-# 🔬 Puncta Analysis
+# Puncta Analysis
 
 **Automated cell & puncta counting from fluorescence microscopy images.**
 
@@ -6,7 +6,7 @@ Puncta Analysis detects and counts fluorescent puncta (or cells) in microscopy i
 
 ---
 
-## ✨ Features
+## Features
 
 - **Automatic counting** — detects puncta using adaptive, image-specific settings
 - **Interactive tuning** — adjust detection with live sliders and instant preview
@@ -17,7 +17,7 @@ Puncta Analysis detects and counts fluorescent puncta (or cells) in microscopy i
 
 ---
 
-## 👩‍🔬 For Users (no coding required)
+## For Users (no coding required)
 
 ### One-time setup
 
@@ -40,9 +40,9 @@ Your web browser will open automatically with the Puncta Analysis app. *(A termi
 
 The app guides you through four steps (tabs at the top):
 
-1. **🏠 Home** — an overview of the tool.
+1. **Home** — an overview of the tool.
 
-2. **🗂️ Image Selection** — click **Choose folder…** and select the folder containing your images. Organize your data like this:
+2. **Image Selection** — click **Choose folder…** and select the folder containing your images. Organize your data like this:
 
    ```
    My data/
@@ -57,9 +57,9 @@ The app guides you through four steps (tabs at the top):
 
    *Each subfolder is one image plus any hand-count ROI files (`.zip`). Images without hand counts work fine too.*
 
-3. **📊 Results** — the tool automatically counts every image and shows a summary table plus preview thumbnails. Click **Enlarge** to inspect any image closely. Click **Process All & Export** to save the results.
+3. **Results** — the tool automatically counts every image and shows a summary table plus preview thumbnails. Click **Enlarge** to inspect any image closely. Click **Process All & Export** to save the results.
 
-4. **🎛️ Manual Tuning (optional)** — not happy with an automatic result? Adjust the detection for any image with live sliders:
+4. **Manual Tuning (optional)** — not happy with an automatic result? Adjust the detection for any image with live sliders:
    - **Brightness threshold (sensitivity):** how bright a spot must be to count
    - **Puncta size (σ):** the expected size of puncta
    - **Area threshold:** which pixels count as "bright" (shown as the red region)
@@ -68,7 +68,7 @@ The app guides you through four steps (tabs at the top):
 
 ---
 
-## 💻 For Developers
+## For Developers
 
 ### Installation (editable)
 
@@ -131,19 +131,3 @@ puncta-analysis/
 ├── launch_windows.bat        # Windows app launcher
 └── setup_mac.command         # Mac one-time setup
 ```
-
-### Testing
-
-```bash
-pytest
-```
-
----
-
-## 📄 License
-
-[Add your license here — e.g., MIT]
-
-## 📚 Citation
-
-[If this supports a publication, add citation info here]

@@ -17,6 +17,21 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import matplotlib
+matplotlib.use("Agg")          # must come before pyplot import
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({
+    "font.family": "sans-serif",
+    "axes.edgecolor": "#cdd5e8",
+    "axes.linewidth": 0.8,
+    "axes.grid": True,
+    "grid.color": "#eef2f9",
+    "grid.linewidth": 0.8,
+    "figure.facecolor": "white",
+    "axes.facecolor": "white",
+})
+
 from puncta_analysis import (
     PunctaConfig,
     load_image_stack,
@@ -33,17 +48,110 @@ from puncta_analysis.visualization import save_overlay_png
 # Page config + theming
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="Puncta Analysis", page_icon="🔬", layout="wide")
+
 st.markdown("""
 <style>
-    .main { background-color: #ffffff; }
-    h1, h2, h3 { color: #132157; }
-    .block-container { padding-top: 3rem !important; }
-    .stButton>button {
-        background-color: #6b8cef; color: white; border-radius: 12px;
-        border: none; font-weight: 600; padding: 0.5rem 1.5rem;
+    /* ---- Import a nicer font (like your inspo sites) ---- */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Inter', -apple-system, sans-serif;
     }
-    .stButton>button:hover { background-color: #2f6fed; }
-    /* Nav tab styling: active vs inactive handled via button 'type' */
+            
+    /* Add these to your <style> block */
+    [data-testid="stHeader"] {
+        background: transparent;
+        height: 0;
+    }
+    [data-testid="stToolbar"] {
+        display: none;
+    }
+
+    /* ---- Background: soft gradient instead of flat white ---- */
+    .stApp {
+        background: linear-gradient(180deg, #f7f9fc 0%, #eef2f9 100%);
+    }
+
+    .block-container {
+        padding-top: 2.5rem !important;
+        max-width: 1200px;
+    }
+
+    /* ---- Headings ---- */
+    h1 { color: #132157; font-weight: 700; letter-spacing: -0.02em; }
+    h2, h3 { color: #1c2b63; font-weight: 600; letter-spacing: -0.01em; }
+
+    /* ---- Buttons: primary vs secondary ---- */
+    .stButton>button {
+        border-radius: 10px;
+        border: 1px solid transparent;
+        font-weight: 600;
+        padding: 0.55rem 1.4rem;
+        transition: all 0.15s ease-in-out;
+        box-shadow: 0 1px 2px rgba(19,33,87,0.06);
+    }
+    /* primary */
+    .stButton>button[kind="primary"] {
+        background: linear-gradient(135deg, #6b8cef 0%, #2f6fed 100%);
+        color: white;
+    }
+    .stButton>button[kind="primary"]:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(47,111,237,0.35);
+    }
+    /* secondary (nav tabs when inactive) */
+    .stButton>button[kind="secondary"] {
+        background: #ffffff;
+        color: #5a6482;
+        border: 1px solid #e2e8f5;
+    }
+    .stButton>button[kind="secondary"]:hover {
+        border-color: #6b8cef;
+        color: #2f6fed;
+    }
+
+    /* ---- Metric cards ---- */
+    [data-testid="stMetric"] {
+        background: #ffffff;
+        border: 1px solid #e6ebf5;
+        border-radius: 14px;
+        padding: 1rem 1.2rem;
+        box-shadow: 0 2px 8px rgba(19,33,87,0.05);
+    }
+    [data-testid="stMetricValue"] { color: #132157; font-weight: 700; }
+
+    /* ---- Dataframe: rounded corners ---- */
+    [data-testid="stDataFrame"] {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(19,33,87,0.06);
+    }
+
+    /* ---- Images / thumbnails: card look ---- */
+    [data-testid="stImage"] img {
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(19,33,87,0.08);
+    }
+
+    /* ---- Expanders ---- */
+    [data-testid="stExpander"] {
+        border: 1px solid #e6ebf5;
+        border-radius: 12px;
+        background: #ffffff;
+    }
+
+    /* ---- Info / success / warning callouts: softer ---- */
+    [data-testid="stAlert"] { border-radius: 12px; }
+
+    /* ---- Sliders: match brand color ---- */
+    [data-testid="stSlider"] [role="slider"] { background-color: #2f6fed; }
+
+    /* ---- Divider: subtle ---- */
+    hr { border-color: #e2e8f5; }
+
+    /* ---- Hide the default Streamlit menu/footer for a cleaner look ---- */
+    #MainMenu { visibility: hidden; }
+    footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -71,6 +179,44 @@ _init_state()
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+def step_cards():
+    steps = [
+        ("Image Selection", "Pick a folder — we find every image and hand-count file automatically."),
+        ("Results", "Puncta are counted in every image automatically, with overlays and exports."),
+        ("Manual Tuning", "Optionally fine-tune any image with live interactive sliders."),
+    ]
+    card_style = (
+        "background:#fff; border:1px solid #e6ebf5; border-radius:16px; "
+        "padding:1.4rem; height:100%; box-shadow:0 2px 12px rgba(19,33,87,0.05);"
+    )
+    cols = st.columns(3)
+    for col, (title, desc) in zip(cols, steps):
+        with col:
+            st.markdown(
+                f'<div style="{card_style}">'
+                f'<div style="font-size:2rem;" </div>'
+                f'<h3 style="margin:0.4rem 0 0.4rem 0;">{title}</h3>'
+                f'<p style="color:#5a6482; font-size:0.92rem; margin:0;">{desc}</p>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+def hero(title, subtitle):
+    st.markdown(f"""
+    <div style="
+        background: #132157;
+        border-radius: 20px;
+        padding: 2.5rem 2.5rem;
+        margin-bottom: 1.5rem;
+        color: white;
+        box-shadow: 0 8px 30px rgba(19,33,87,0.25);
+    ">
+        <div style="font-size: 3rem; line-height:1;" </div>
+        <h1 style="color:white; margin: 0.5rem 0 0.3rem 0; font-size:2.2rem;">{title}</h1>
+        <p style="color:#c7d4f5; font-size:1.15rem; margin:0; font-weight:400;">{subtitle}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
 @st.cache_data(show_spinner=False)
 def dog_histogram_png(tif_str, channel, sigma1, current_sens, auto_sens) -> bytes:
     """DoG-response histogram with current + auto (reference) threshold lines.
@@ -78,9 +224,6 @@ def dog_histogram_png(tif_str, channel, sigma1, current_sens, auto_sens) -> byte
     The count threshold = dog_mean + sensitivity * dog_std, so we mark where
     the current and auto sensitivity values place that cutoff.
     """
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
     import io
 
     image = load_image_stack(tif_str)
@@ -132,9 +275,6 @@ def get_gmm_threshold(tif_str, channel, sigma1, sensitivity) -> float:
 @st.cache_data(show_spinner=False)
 def gmm_histogram_png(tif_str, channel, current_thr, auto_thr) -> bytes:
     """Intensity histogram with current + auto (reference) threshold lines."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
     import io
 
     image = load_image_stack(tif_str)
@@ -163,9 +303,6 @@ def gmm_histogram_png(tif_str, channel, current_thr, auto_thr) -> bytes:
 @st.cache_data(show_spinner=False)
 def make_overlay_image(tif_str, channel, sensitivity, sigma1) -> bytes:
     """Render an overlay (image + auto detections) as PNG bytes, cached."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
     import io
 
     image = load_image_stack(tif_str)
@@ -442,29 +579,17 @@ def render_nav():
 # PAGE: HOME
 # ===========================================================================
 def page_home():
-    st.title("🔬 Puncta Analysis")
-    st.subheader("Automated cell & puncta counting from microscopy images")
+    hero("Puncta Analysis",
+         "Automated cell & puncta counting from microscopy images")
+
+    st.markdown("Welcome! This tool automatically counts fluorescent puncta "
+                "(or cells) in your microscopy images, so you don't have to "
+                "count them by hand.")
+
+    st.markdown("### How it works")
+    step_cards()          # <-- the cards render here
 
     st.markdown("""
-    Welcome! This tool automatically counts fluorescent puncta (or cells) in
-    your microscopy images, so you don't have to count them by hand.
-
-    ### How it works
-
-    The analysis happens in a few simple steps:
-
-    1. **🗂️ Image Selection** — Choose a folder containing your images. The tool
-       automatically finds every image and any hand-count files you've made.
-
-    2. **📊 Results** — The tool counts puncta in every image **automatically**,
-       using parameters it estimates from each image (no manual input needed).
-       You'll see counts, measurements, and overlay images for every file.
-
-    3. **🎛️ Manual Tuning (optional)** — Not happy with an automatic result? You
-       can fine-tune the detection for any image using live, interactive
-       sliders — adjusting how bright a spot must be and how large puncta are,
-       while comparing against your hand counts.
-
     ### What makes it reliable
 
     - **Adapts to each image:** detection parameters are estimated from the
@@ -473,12 +598,9 @@ def page_home():
       the automatic counts match what a human would find.
     - **Export everything:** counts, per-punctum measurements, and annotated
       overlay images are saved for your records.
-
-    ---
-    Ready? Head to **Image Selection** to get started. 👆
     """)
 
-    if st.button("🗂️ Get started — Select images", type="primary"):
+    if st.button("Get started — Select images", type="primary"):
         go_to("Image Selection")
 
 
@@ -487,7 +609,7 @@ def page_home():
 # ===========================================================================
 def page_selection():
     ss = st.session_state
-    st.title("🗂️ Image Selection")
+    st.title("Image Selection")
     st.write("Choose the master folder containing your images. Each image "
              "should be in its own subfolder with any hand-count ROI files "
              "(.zip) for that image.")
@@ -513,7 +635,7 @@ def page_selection():
                                  help="For multi-channel images. Ignored for "
                                       "single-channel images.")
 
-    if st.button("📁 Choose folder…", type="primary"):
+    if st.button("Choose folder…", type="primary"):
         folder = pick_folder()
         if folder:
             images = discover_dataset(Path(folder))
@@ -533,7 +655,7 @@ def page_selection():
             st.write(f"- **{im['name']}** ({len(im['zips'])} hand-count set(s))")
         st.info("Next: view the automatic counts on the **Results** page. "
                 "You can fine-tune any image afterward in **Manual Tuning**.")
-        if st.button("📊 View Results", type="primary"):
+        if st.button("View Results", type="primary"):
             go_to("Results")
 
 
@@ -555,7 +677,7 @@ def _analyze_image(tif_str, channel, sensitivity, sigma1):
 
 def page_results():
     ss = st.session_state
-    st.title("📊 Results")
+    st.title("Results")
 
     if not ss.images:
         st.warning("No images loaded. Go to **Image Selection** first.")
@@ -610,7 +732,7 @@ def page_results():
     # Export
     st.divider()
     output_dir = st.text_input("Output folder", value="results")
-    if st.button("🚀 Process All & Export", type="primary"):
+    if st.button("Process All & Export", type="primary"):
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         out = Path(output_dir) / f"run_{ts}"
         out.mkdir(parents=True, exist_ok=True)
@@ -659,7 +781,7 @@ def page_tune():
     im = ss.images[ss.idx]
     name = im["name"]
 
-    st.title("🎛️ Manual Tuning")
+    st.title("Manual Tuning")
     st.caption(f"Image {ss.idx + 1} of {n}: **{name}**")
 
     image = load_image_cached(str(im["tif"]), int(ss.channel))
@@ -705,7 +827,7 @@ def page_tune():
         sens = st.slider("Brightness threshold (sensitivity)", 0.0, 5.0,
                          step=0.05, key=sens_key,
                          help="Higher → fewer, brighter puncta (affects count).")
-        with st.expander("📊 Show count-threshold plot (DoG)"):
+        with st.expander("Show count-threshold plot (DoG)"):
             dog_png = dog_histogram_png(
                 str(im["tif"]), int(ss.channel),
                 round(float(ss[sig_key]), 2), round(sens, 2),
@@ -717,7 +839,7 @@ def page_tune():
                          step=max(1.0, img_max / 500.0), key=area_key,
                          help="Pixels brighter than this count as puncta area "
                               "(shown as the red region on the image).")
-        with st.expander("📊 Show area-threshold plot (intensity)"):
+        with st.expander("Show area-threshold plot (intensity)"):
             gmm_png = gmm_histogram_png(str(im["tif"]), int(ss.channel),
                                         round(area, 1), round(auto_area_ref, 1))
             st.image(gmm_png, use_container_width=True)
@@ -726,7 +848,7 @@ def page_tune():
         sig = st.slider("Puncta size (σ)", 0.5, 6.0, step=0.05, key=sig_key,
                         help="Expected puncta radius in pixels.")
 
-        with st.expander("ℹ️ How are the starting values chosen?"):
+        with st.expander("How are the starting values chosen?"):
             st.markdown("""
             Starting values are estimated automatically from each image:
 
@@ -779,7 +901,7 @@ def page_tune():
         # Save + Reset
         c_save, c_reset = st.columns(2)
         with c_save:
-            if st.button("💾 Save", type="primary", key=f"save_{name}"):
+            if st.button("Save", type="primary", key=f"save_{name}"):
                 ss.settings[name] = {"sensitivity": round(sens, 3),
                                      "sigma1": round(sig, 3),
                                      "area_threshold": float(area)}
@@ -810,14 +932,14 @@ def page_tune():
 
         _, nav_prev, nav_over, nav_next, _ = st.columns([0.5, 1, 1, 1, 0.5])
         with nav_prev:
-            if st.button("⬅️ Previous", disabled=(ss.idx == 0),
+            if st.button("⬅ Previous", disabled=(ss.idx == 0),
                          use_container_width=True):
                 ss.idx -= 1; st.rerun()
         with nav_over:
-            if st.button("📊 Results", use_container_width=True):
+            if st.button("Results", use_container_width=True):
                 go_to("Results")
         with nav_next:
-            if st.button("Next ➡️", disabled=(ss.idx == n - 1),
+            if st.button("Next ⮕", disabled=(ss.idx == n - 1),
                          use_container_width=True):
                 ss.idx += 1; st.rerun()
 
