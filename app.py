@@ -206,13 +206,13 @@ def hero(title, subtitle):
     <div style="
         background: #132157;
         border-radius: 20px;
-        padding: 2.5rem 2.5rem;
+        padding: 1.5rem 1.5rem;
         margin-bottom: 1.5rem;
         color: white;
         box-shadow: 0 8px 30px rgba(19,33,87,0.25);
     ">
         <div style="font-size: 3rem; line-height:1;" </div>
-        <h1 style="color:white; margin: 0.5rem 0 0.3rem 0; font-size:2.2rem;">{title}</h1>
+        <h1 style="color:white; margin: 0.3rem 0.3rem 0.3rem 0; font-size:2.2rem;">{title}</h1>
         <p style="color:#c7d4f5; font-size:1.15rem; margin:0; font-weight:400;">{subtitle}</p>
     </div>
     """, unsafe_allow_html=True)
@@ -852,11 +852,10 @@ def page_tune():
             st.markdown("""
             Starting values are estimated automatically from each image:
 
-            - **Puncta size (σ):** typical blob size across scales.
-            - **Brightness threshold (sensitivity):** an Otsu cutoff on the
-              filtered image (controls the **count**).
-            - **Area threshold:** a background/signal split on raw intensities
-              (controls the **red area region**).
+            - **Puncta size (σ):** typical puncta size.
+            - **Puncta Brightness threshold:** an [Otsu cutoff](https://en.wikipedia.org/wiki/Otsu%27s_method) on the
+              filtered image separates bright puncta from dark background.
+            - **Area threshold:** a background/signal split on raw intensities controls the red area region.
 
             On the histogram, the dashed line is the automatic value; the solid
             red line is your current setting. Adjust the sliders to fine-tune.
